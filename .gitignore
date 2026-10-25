@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.env
+preview/
+profile/preview.html

@@ -1,0 +1,9 @@
+services:
+  gh-cards:
+    build: .
+    environment:
+      PAT_1: ${PAT_1}
+      WHITELIST: ${WHITELIST}
+      CACHE_SECONDS: ${CACHE_SECONDS:-14400}
+      PORT: "9000"
+    restart: unless-stopped
