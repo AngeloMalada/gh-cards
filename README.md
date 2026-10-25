@@ -119,6 +119,10 @@ Alternatively, run the included `docker-compose.yml` as a Compose service, with 
   `CACHE_SECONDS`. GitHub's image proxy may also keep showing an old card for a while after you deploy a change;
   adding a parameter such as `&v=2` to the image URL in your README forces a refresh. Outside production, the server
   tells clients not to cache, so changes show up on reload.
+- **Descriptions.** When a repository or organization has no description on GitHub, the cards use the first real
+  paragraph of its README (for organizations, the public profile README in `.github/profile/README.md`), skipping
+  badges, setup steps and generator boilerplate. If there's no prose, a `**Name** - …` feature list becomes
+  "Built with …". Otherwise the line is left empty.
 - **Card size.** Embedding the fonts makes each card roughly 50–95 KB; the hero is about 150 KB with your avatar.
 - **Clicks.** On GitHub, clicking a card image opens the image itself. Only the text links in the README are
   clickable.

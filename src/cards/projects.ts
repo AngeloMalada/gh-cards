@@ -32,7 +32,7 @@ export function projectsCard(repos: Repo[], t: Theme) {
   const tiles = repos.map((r, i) => {
     const x = CX + (i % COLS) * (tw + GAP);
     const y = top + Math.floor(i / COLS) * (TILE_H + GAP);
-    const desc = wrap(r.description || "No description yet.", 54, 2)
+    const desc = wrap(r.description, 54, 2)
       .map((l, j) => `<text x="16" y="${62 + j * 19}" class="desc">${escapeXml(l)}</text>`).join("");
     const lang = r.language ? `<tspan fill="${r.language.color}">●</tspan> ${escapeXml(r.language.name)}  ·  ` : "";
     const badge = r.isPrivate ? `<text x="${tw - 16}" y="34" class="badge" text-anchor="end">Private</text>` : "";

@@ -27,7 +27,7 @@ export function orgsCard(orgs: Org[], avatars: Record<string, string | undefined
     <rect x="16.5" y="20.5" width="${AV - 1}" height="${AV - 1}" rx="9.5" fill="none" stroke="${t.frameBorder}"/>
     <text x="${AV + 32}" y="36" class="org">${escapeXml(clip(o.name, 40))}</text>
     <text x="${AV + 32}" y="54" class="meta" xml:space="preserve">${escapeXml(meta)}</text>
-    <text x="${AV + 32}" y="72" class="desc">${escapeXml(clip(o.description || "No description yet.", descChars))}</text>
+    ${o.description ? `<text x="${AV + 32}" y="72" class="desc">${escapeXml(clip(o.description, descChars))}</text>` : ""}
   </g>`;
   }).join("");
 

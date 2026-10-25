@@ -126,11 +126,50 @@ export async function fetchRepos(refs: { owner: string; name: string }[], token:
   });
   const json: any = await res.json();
   if (!json.data) throw new Error(json.errors?.map((e: any) => e.message).join("; ") ?? "GraphQL error");
-  return refs.map((_, i) => json.data[`r${i}`]).filter(Boolean).map((r: any) => ({
-    owner: r.owner.login, ownerIsOrg: r.owner.__typename === "Organization", name: r.name, description: r.description ?? "",
+  return Promise.all(refs.map((_, i) => json.data[`r${i}`]).filter(Boolean).map(async (r: any) => ({
+    owner: r.owner.login, ownerIsOrg: r.owner.__typename === "Organization", name: r.name,
+    description: r.description || readmeSummary(await fetchReadme(`/repos/${r.owner.login}/${r.name}/readme`, token)),
     language: r.primaryLanguage ? { name: r.primaryLanguage.name, color: r.primaryLanguage.color ?? "#8b949e" } : null,
     stars: r.stargazerCount, forks: r.forkCount, isPrivate: r.isPrivate, updatedAt: r.updatedAt,
-  }));
+  })));
+}
+
+/** Raw README text at a REST path, or "" when there is none. */
+async function fetchReadme(path: string, token: string): Promise<string> {
+  const res = await fetch(`https://api.github.com${path}`, {
+    headers: { Authorization: `bearer ${token}`, Accept: "application/vnd.github.raw+json", "User-Agent": "gh-cards" },
+  });
+  return res.ok ? res.text() : "";
+}
+
+const BOILERPLATE = /bootstrapped with|was (created|generated|scaffolded) (with|using|by)|^getting started/i;
+const plainText = (s: string) => s
+  .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+  .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+  .replace(/<[^>]+>/g, "")
+  .replace(/[*_`~]/g, "")
+  .replace(/\s+/g, " ")
+  .trim();
+
+/**
+ * One-line summary of a README for repos and orgs without a description: the first real paragraph
+ * (skipping headings, lists, badges, HTML and generator boilerplate), else the bold names of a
+ * "**Name** - …" feature list as "Built with …", else "".
+ */
+export function readmeSummary(md: string): string {
+  const text = md.replace(/```[\s\S]*?```/g, "").replace(/<!--[\s\S]*?-->/g, "");
+  // Only the intro (before the first ## heading) and About/Overview-style sections describe the project;
+  // later sections are setup steps and the like.
+  const sections = text.split(/^(?=#{2,6}\s)/m);
+  const intro = [sections[0], ...sections.slice(1).filter((s) => /^#+\s*(about|overview|description|introduction|what is)/i.test(s))]
+    .map((s) => s.replace(/^#{2,6}[^\n]*\n/, "")).join("\n\n");
+  for (const block of intro.split(/\r?\n\s*\r?\n/).map((b) => b.trim())) {
+    if (!block || /^(#|[-*+] |\d+\. |\||>|!\[|\[!\[|<)/.test(block)) continue;
+    const plain = plainText(block);
+    if (plain.length >= 25 && !BOILERPLATE.test(plain)) return plain;
+  }
+  const names = [...text.matchAll(/^\s*[-*+]\s+\*\*([^*]+)\*\*/gm)].map((m) => m[1].trim()).slice(0, 6);
+  return names.length >= 2 ? `Built with ${names.join(", ")}.` : "";
 }
 
 export type Org = { login: string; name: string; description: string; repos: number };
@@ -147,6 +186,8 @@ export async function fetchOrgs(login: string, token: string): Promise<Org[]> {
   const list: any[] = await get(viewer.login.toLowerCase() === login.toLowerCase() ? "/user/orgs?per_page=100" : `/users/${encodeURIComponent(login)}/orgs?per_page=100`);
   return Promise.all(list.map(async (o) => {
     const d = await get(`/orgs/${encodeURIComponent(o.login)}`);
-    return { login: d.login, name: d.name || d.login, description: d.description ?? "", repos: d.public_repos + (d.total_private_repos ?? 0) };
+    // Without a description, fall back to the org's public profile README (.github/profile/README.md).
+    const description = d.description || readmeSummary(await fetchReadme(`/repos/${d.login}/.github/contents/profile/README.md`, token));
+    return { login: d.login, name: d.name || d.login, description, repos: d.public_repos + (d.total_private_repos ?? 0) };
   }));
 }
