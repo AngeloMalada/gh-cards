@@ -132,3 +132,21 @@ export async function fetchRepos(refs: { owner: string; name: string }[], token:
     stars: r.stargazerCount, forks: r.forkCount, isPrivate: r.isPrivate, updatedAt: r.updatedAt,
   }));
 }
+
+export type Org = { login: string; name: string; description: string; repos: number };
+
+// The token owner's own memberships include private ones; anyone else only shows their public orgs.
+export async function fetchOrgs(login: string, token: string): Promise<Org[]> {
+  const headers = { Authorization: `bearer ${token}`, Accept: "application/vnd.github+json", "User-Agent": "gh-cards" };
+  const get = async (path: string) => {
+    const res = await fetch(`https://api.github.com${path}`, { headers });
+    if (!res.ok) throw new Error(`GitHub ${path}: ${res.status}`);
+    return res.json() as Promise<any>;
+  };
+  const viewer = await get("/user");
+  const list: any[] = await get(viewer.login.toLowerCase() === login.toLowerCase() ? "/user/orgs?per_page=100" : `/users/${encodeURIComponent(login)}/orgs?per_page=100`);
+  return Promise.all(list.map(async (o) => {
+    const d = await get(`/orgs/${encodeURIComponent(o.login)}`);
+    return { login: d.login, name: d.name || d.login, description: d.description ?? "", repos: d.public_repos + (d.total_private_repos ?? 0) };
+  }));
+}

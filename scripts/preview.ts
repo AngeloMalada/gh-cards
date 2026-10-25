@@ -4,6 +4,7 @@ import { statsCard } from "../src/cards/stats.js";
 import { stackCard } from "../src/cards/stack.js";
 import { heatmapCard } from "../src/cards/heatmap.js";
 import { projectsCard } from "../src/cards/projects.js";
+import { orgsCard } from "../src/cards/orgs.js";
 import { pickTheme } from "../src/theme.js";
 import type { Stats } from "../src/github.js";
 
@@ -38,5 +39,9 @@ for (const theme of ["dark", "light"]) {
     { owner: "acme-labs", ownerIsOrg: true, name: "project-two", description: "", language: { name: "TypeScript", color: "#3178c6" }, stars: 0, forks: 0, isPrivate: false, updatedAt: "" },
     { owner: "your-username", ownerIsOrg: false, name: "project-three", description: "Zero-downtime Postgres schema migrations, reviewed like code.", language: { name: "Python", color: "#3572A5" }, stars: 12, forks: 1, isPrivate: true, updatedAt: "" },
   ], t));
+  writeFileSync(`preview/orgs-${theme}.svg`, orgsCard([
+    { login: "acme-labs", name: "Acme Labs", description: "Product studio building web and mobile apps.", repos: 18 },
+    { login: "open-tools", name: "Open Tools", description: "", repos: 4 },
+  ], {}, t));
 }
 console.log("wrote preview/*.svg");

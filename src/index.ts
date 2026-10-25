@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { fetchStats, fetchRepos, type Stats, type Repo } from "./github.js";
+import { fetchStats, fetchRepos, fetchOrgs, type Stats, type Repo, type Org } from "./github.js";
 import { pickTheme } from "./theme.js";
 import { statsCard } from "./cards/stats.js";
 import { stackCard } from "./cards/stack.js";
@@ -8,6 +8,7 @@ import { heatmapCard } from "./cards/heatmap.js";
 import { projectsCard } from "./cards/projects.js";
 import { heroCard, type HeroStat } from "./cards/hero.js";
 import { ctaCard } from "./cards/cta.js";
+import { orgsCard } from "./cards/orgs.js";
 
 const PAT = process.env.PAT_1;
 if (!PAT) { console.error("PAT_1 is required"); process.exit(1); }
@@ -125,6 +126,29 @@ const ctaHandler = (c: any) => c.body(ctaCard({
 });
 app.get("/api/cta", ctaHandler);
 app.get("/api/section/cta", ctaHandler);
+
+// Organizations card: the user's org memberships, with each org's avatar inlined.
+const orgCache = new Map<string, { at: number; data: Org[] }>();
+const orgsHandler = async (c: any) => {
+  const login = c.req.query("username")!;
+  try {
+    const key = login.toLowerCase();
+    const hit = orgCache.get(key);
+    let orgs: Org[];
+    if (hit && Date.now() - hit.at < CACHE_SECONDS * 1000) orgs = hit.data;
+    else { orgs = await fetchOrgs(login, PAT!); orgCache.set(key, { at: Date.now(), data: orgs }); }
+    const avatars = Object.fromEntries(await Promise.all(orgs.map(async (o) => [o.login, await getAvatar(o.login).catch(() => undefined)])));
+    return c.body(orgsCard(orgs, avatars, themeOf(c)), 200, {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Cache-Control": CACHE_CONTROL,
+    });
+  } catch (e: any) {
+    console.error(e);
+    return c.body(errorCard(`Could not load organizations: ${e.message ?? e}`), 500, { "Content-Type": "image/svg+xml" });
+  }
+};
+app.get("/api/orgs", orgsHandler);
+app.get("/api/section/orgs", orgsHandler);
 
 // Projects card: ?repos=owner/name,owner/name (URL-encoded commas and slashes are fine).
 const repoCache = new Map<string, { at: number; data: Repo[] }>();

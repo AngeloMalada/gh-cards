@@ -17,6 +17,7 @@ as they do anywhere else.
 | **Language Stack** | `/api/stack?username=X` | Your top languages, weighted by code size across every non-fork repository you own, public and private |
 | **Contribution Activity** | `/api/heatmap?username=X` | A 53-week contribution grid with your yearly total |
 | **Selected Work** | `/api/projects?repos=owner/a,owner/b` | Tiles for up to 6 chosen repositories: description, language, stars, and a Private badge where relevant. Organization repos display as `org / repo` |
+| **Organizations** | `/api/orgs?username=X` | The organizations you belong to, with avatar, name, description and repository count. For the token's owner this includes private memberships |
 | **Call to action** | `/api/cta` | The closing "Let's talk about the next build" box |
 
 ### Options
